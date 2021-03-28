@@ -47,10 +47,10 @@ class Conform extends Module
 
         parent::__construct();
 
-        $this->displayName = $this->l('Conform - Formulaire de Contact');
-        $this->description = $this->l('Créer votre formulaire de contact en un simple clic !');
+        $this->displayName = $this->l('Conform - Contact Form');
+        $this->description = $this->l('Create your contact form in 1 clic !');
 
-        $this->confirmUninstall = $this->l('Êtes-vous sûr de vouloir désinstaller Conform ?');
+        $this->confirmUninstall = $this->l('Are you sure you want to uninstall the module ?');
 
         $this->ps_versions_compliancy = array('min' => '1.7', 'max' => _PS_VERSION_);
     }
@@ -65,8 +65,7 @@ class Conform extends Module
 
         include(dirname(__FILE__).'/sql/install.php');
 
-        return parent::install() &&
-            $this->registerHook('header') &&
+        return parent::install()
             $this->registerHook('backOfficeHeader') &&
             $this->registerHook('displayFooter');
     }
