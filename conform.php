@@ -221,9 +221,17 @@ class Conform extends Module
         $this->context->controller->addJS($this->_path.'/views/js/front.js');
         $this->context->controller->addCSS($this->_path.'/views/css/front.css');
     }
+public function hookDisplayLeftColumn($params)
+{
+   $this->context->smarty->assign(
+       array(
+           'conform1' => Configuration::get('CONFORM1'),
+           'conform2' => Configuration::get('CONFORM2'),
+           'conform3' => Configuration::get('CONFORM3'),
+           'conform4' => Configuration::get('CONFORM4'),
+       )
+   );
+   return $this->display(__FILE__, 'views/templates/hook/conform.tpl');
+}
 
-    public function hookDisplayFooter()
-    {
-        /* Place your code here. */
-    }
 }
