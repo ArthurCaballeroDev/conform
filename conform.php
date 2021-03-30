@@ -177,8 +177,8 @@ class Conform extends Module
                 'class' => 'btn btn-default'
             )
         );
-    }
-    {
+   
+    
         $helper = new HelperForm();
         $helper->module = $this;
         $helper->name_controller = $this->name;
