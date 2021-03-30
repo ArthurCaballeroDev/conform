@@ -37,9 +37,10 @@ class Conform extends Module
         $this->name = 'conform';
         $this->tab = 'emailing';
         $this->version = '1.0.0';
-        $this->author = 'Arthur';
+        $this->author = 'Ukoo';
         $this->need_instance = 0;
 
+        $this->context = Context::getContext();
         /**
          * Set $this->bootstrap to true if your module is compliant with bootstrap (PrestaShop 1.6)
          */
@@ -61,13 +62,19 @@ class Conform extends Module
      */
     public function install()
     {
-        Configuration::updateValue('CONFORM_LIVE_MODE', false);
-
-        include(dirname(__FILE__).'/sql/install.php');
-
-        return parent::install()
+        if (Shop::isFeatureActive()) {
+            return Shop::setContext(Shop::CONTEXT_ALL);
+        }
+        return parent::install() &&
             $this->registerHook('backOfficeHeader') &&
             $this->registerHook('displayFooter');
+            Configuration::updateValue('NAME', '') &&
+            Configuration::updateValue('SURNAME', '') &&
+            Configuration::updateValue('OBJECT', '') &&
+            Configuration::updateValue('MESSAGE', '') &&
+            Configuration::updateValue('SUBMIT', '');
+
+
     }
 
     public function uninstall()
@@ -76,7 +83,12 @@ class Conform extends Module
 
         include(dirname(__FILE__).'/sql/uninstall.php');
 
-        return parent::uninstall();
+        return parent::uninstall() &&
+            Configuration::deleteByName('NAME', '') &&
+            Configuration::deleteByName('SURNAME', '') &&
+            Configuration::deleteByName('OBJECT', '') &&
+            Configuration::deleteByName('MESSAGE', '') &&
+            Configuration::deleteByName('SUBMIT', '');
     }
 
     /**
@@ -84,11 +96,23 @@ class Conform extends Module
      */
     public function getContent()
     {
-        /**
-         * If values have been submitted in the form, process.
-         */
-        if (((bool)Tools::isSubmit('submitConformModule')) == true) {
-            $this->postProcess();
+        $output = null;
+        if (Tools::isSubmit('submit' . $this->name)) {
+            $Name = Tools::getValue('NAME');
+            $Surname = Tools::getValue('SURNAME');
+            $Object = Tools::getValue('OBJECT');
+            $Message = Tools::getValue('MESSAGE');
+            $Submit = Tools::getValue('SUBMIT');
+            if (!$Name || empty($Name) || !Validate::isGenericName($Name)) {
+                $output .= $this->displayError($this->l('Configuration failed'));
+            } else {
+                Configuration::updateValue('NAME', $Name,);
+                Configuration::updateValue('SURNAME', $Surname);
+                Configuration::updateValue('OBJECT', $Object);
+                Configuration::updateValue('MESSAGE', $Message);
+                Configuration::updateValue('SUBMIT', $Submit);
+                $output .= $this->displayConfirmation($this->l('Update successful'));
+            }
         }
 
         $this->context->smarty->assign('module_dir', $this->_path);
@@ -101,29 +125,94 @@ class Conform extends Module
     /**
      * Create the form that will be displayed in the configuration of your module.
      */
-    protected function renderForm()
+    protected function displayForm()
+
+        public function displayForm()
+    {
+        $fields_form = array();
+        $default_lang = (int)Configuration::get('PS_LANG_DEFAULT');
+        $fields_form[0]['form'] = array(
+            'legend' => array(
+                'title' => $this->l('Contact Form settings'),
+            ),
+            'input' => array(
+                array(
+                    'type' => 'text',
+                    'label' => $this->l('Name'),
+                    'name' => 'NAME',
+                    'size' => 5,
+                    'required' => true
+                ),
+                array(
+                    'type' => 'text',
+                    'label' => $this->l('Surname'),
+                    'name' => 'SURNAME',
+                    'size' => 5,
+                    'required' => true
+                ),
+                array(
+                    'type' => 'text',
+                    'label' => $this->l('E-mail'),
+                    'name' => 'EMAIL',
+                    'size' => 5,
+                    'required' => true
+                )
+                array(
+                    'type' => 'text',
+                    'label' => $this->l('Object'),
+                    'name' => 'OBJECT',
+                    'size' => 5,
+                    'required' => true
+                )
+                    array(
+                        'type' => 'textarea',
+                        'label' => $this->l('Message'),
+                        'name' => 'MESSAGE',
+                        'size' => 20,
+                        'required' => true
+                    )
+            ),
+            'submit' => array(
+                'title' => $this->l('Submit'),
+                'class' => 'btn btn-default'
+            )
+        );
+    }
     {
         $helper = new HelperForm();
-
-        $helper->show_toolbar = false;
-        $helper->table = $this->table;
         $helper->module = $this;
-        $helper->default_form_language = $this->context->language->id;
-        $helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG', 0);
-
-        $helper->identifier = $this->identifier;
-        $helper->submit_action = 'submitConformModule';
-        $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false)
-            .'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
+        $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
-
-        $helper->tpl_vars = array(
-            'fields_value' => $this->getConfigFormValues(), /* Add values for your inputs */
-            'languages' => $this->context->controller->getLanguages(),
-            'id_language' => $this->context->language->id,
+        $helper->currentIndex = AdminController::$currentIndex . '&configure=' . $this->name;
+        $helper->default_form_language = $default_lang;
+        $helper->allow_employee_form_lang = $default_lang;
+        $helper->title = $this->displayName;
+        $helper->show_toolbar = true;
+        $helper->toolbar_scroll = true;
+        $helper->submit_action = 'submit' . $this->name;
+        $helper->toolbar_btn = array(
+            'save' =>
+                array(
+                    'desc' => $this->l('Save'),
+                    'href' => AdminController::$currentIndex . '&configure=' . $this->name . '&save' . $this->name .
+                        '&token=' . Tools::getAdminTokenLite('AdminModules'),
+                ),
+            'back' => array(
+                'href' => AdminController::$currentIndex . '&token=' . Tools::getAdminTokenLite('AdminModules'),
+                'desc' => $this->l('Back to list')
+            )
         );
 
-        return $helper->generateForm(array($this->getConfigForm()));
+        $helper->tpl_vars = array(
+            'fields_value' => array(
+                'NAME' => Configuration::get('NAME'),
+                'SURNAME' => Configuration::get('SURNAME'),
+                'EMAIL' => Configuration::get('EMAIL'),
+                'OBJECT' => Configuration::get('OBJECT'),
+                'MESSAGE' => Configuration::get('MESSAGE')
+            ),
+        );
+        return $helper->generateForm($fields_form);
     }
 
     /**
@@ -225,10 +314,11 @@ public function hookDisplayLeftColumn($params)
 {
    $this->context->smarty->assign(
        array(
-           'conform1' => Configuration::get('CONFORM1'),
-           'conform2' => Configuration::get('CONFORM2'),
-           'conform3' => Configuration::get('CONFORM3'),
-           'conform4' => Configuration::get('CONFORM4'),
+           'Name' => Configuration::get('NAME'),
+           'Surname' => Configuration::get('SURNAME'),
+           'E-mail' => Configuration::get('EMAIL'),
+           'Object' => Configuration::get('OBJECT'),
+           'Message' => Configuration::get('MESSAGE')
        )
    );
    return $this->display(__FILE__, 'views/templates/hook/conform.tpl');
