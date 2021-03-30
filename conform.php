@@ -125,7 +125,7 @@ class Conform extends Module
     /**
      * Create the form that will be displayed in the configuration of your module.
      */
-    protected function displayForm()
+    //protected function displayForm()
 
         public function displayForm()
     {
