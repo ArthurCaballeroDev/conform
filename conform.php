@@ -156,6 +156,29 @@ class Conform extends Module
         return $helper->generateForm($fields_form);
     }
 
+    public function hookheader()
+    {
+        $this->context->controller->addCSS($this->_path . '/views/css/conform.css', 'all');
+    }
+
+    public function hookDisplayLeftColumn($params)
+    {
+//        $this->context->smarty->assign(
+//            array(
+//                'conform_firstname' => Configuration::get('CONFORM_FIRSTNAME'),
+//                'conform_lastname' => Configuration::get('CONFORM_LASTNAME'),
+//                'conform_email' => Configuration::get('CONFORM_EMAIL'),
+//                'conform_object' => Configuration::get('CONFORM_OBJECT'),
+//                'conform_message' => Configuration::get('CONFORM_MESSAGE')
+//            )
+//        );
+        return $this->display(__FILE__, 'views/templates/hook/conform.tpl');
+    }
+
+    public function hookDisplayFooterProduct($params)
+    {
+        return $this->hookDisplayLeftColumn($params);
+    }
 }
 
 
